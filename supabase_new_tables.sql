@@ -15,8 +15,12 @@ CREATE TABLE IF NOT EXISTS public.workout_logs (
     user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
     date date DEFAULT CURRENT_DATE NOT NULL,
     workout_type text NOT NULL,
+    duration_minutes integer,
+    intensity text, -- light, moderate, intense
+    calories_burned integer,
     completed boolean DEFAULT false NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    UNIQUE(user_id, date)
 );
 
 -- 3. Disable RLS for MVP development (matching profiles pattern)

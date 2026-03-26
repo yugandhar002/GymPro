@@ -10,19 +10,34 @@ export interface WeeklySchedule {
   created_at?: string;
 }
 
+export interface WorkoutLog {
+  id: string;
+  user_id: string;
+  date: string;
+  workout_type: string;
+  duration_minutes?: number;
+  intensity?: string;
+  calories_burned?: number;
+  completed: boolean;
+}
+
 interface ScheduleState {
-  userSchedules: Record<string, WeeklySchedule[]>; // user_id -> schedules
+  userSchedules: Record<string, WeeklySchedule[]>;
+  todayLog: WorkoutLog | null;
   loading: boolean;
   fetchUserSchedules: (userId: string) => Promise<void>;
+  fetchTodayLog: (userId: string) => Promise<void>;
   upsertSchedule: (userId: string, day: number, type: string, exercises: string) => Promise<void>;
-  logWorkout: (userId: string, type: string) => Promise<void>;
+  saveWorkoutLog: (log: Omit<WorkoutLog, 'id'>) => Promise<void>;
 }
 
 export const useScheduleStore = create<ScheduleState>((set, get) => ({
   userSchedules: {},
+  todayLog: null,
   loading: false,
 
   fetchUserSchedules: async (userId: string) => {
+    // ... (logic remains same)
     set({ loading: true });
     try {
       const { data, error } = await supabase
@@ -32,55 +47,54 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
         .order('day_of_week', { ascending: true });
 
       if (error) throw error;
-      
-      set((state) => ({
-        userSchedules: {
-          ...state.userSchedules,
-          [userId]: data || []
-        }
-      }));
+      set((state) => ({ userSchedules: { ...state.userSchedules, [userId]: data || [] } }));
     } catch (error) {
-      console.error('Error fetching schedules:', error);
+      console.error(error);
     } finally {
       set({ loading: false });
     }
   },
 
+  fetchTodayLog: async (userId: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    const { data, error } = await supabase
+      .from('workout_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('date', today)
+      .single();
+
+    if (data && !error) {
+      set({ todayLog: data });
+    }
+  },
+
   upsertSchedule: async (userId, day, type, exercises) => {
+    // ... (logic remains same)
     try {
       const { error } = await supabase
         .from('weekly_schedules')
-        .upsert({
-          user_id: userId,
-          day_of_week: day,
-          workout_type: type,
-          exercises: exercises,
-        }, { onConflict: 'user_id,day_of_week' });
-
+        .upsert({ user_id: userId, day_of_week: day, workout_type: type, exercises: exercises }, { onConflict: 'user_id,day_of_week' });
       if (error) throw error;
-      
-      // Refresh local cache
       await get().fetchUserSchedules(userId);
     } catch (error) {
-      console.error('Error upserting schedule:', error);
+      console.error(error);
       throw error;
     }
   },
 
-  logWorkout: async (userId, type) => {
+  saveWorkoutLog: async (log) => {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('workout_logs')
-        .insert({
-          user_id: userId,
-          workout_type: type,
-          completed: false,
-          date: new Date().toISOString().split('T')[0],
-        });
+        .upsert(log, { onConflict: 'user_id,date' })
+        .select()
+        .single();
 
       if (error) throw error;
+      set({ todayLog: data });
     } catch (error) {
-      console.error('Error logging workout:', error);
+      console.error('Error saving workout log:', error);
       throw error;
     }
   }

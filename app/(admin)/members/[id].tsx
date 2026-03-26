@@ -7,7 +7,15 @@ import { Save, User, Target } from 'lucide-react-native';
 import { Picker } from '@react-native-picker/picker';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const WORKOUT_TYPES = ['Rest Day', 'Cardio', 'Full Body', 'Upper Body', 'Leg Day', 'Core', 'Back & Biceps', 'Chest & Triceps'];
+const WORKOUT_TYPES = [
+  'Rest Day', 
+  'Chest & Triceps Day', 
+  'Back & Biceps Day', 
+  'Leg Day', 
+  'Shoulders & Core Day', 
+  'Full Body Day', 
+  'Cardio Day'
+];
 
 export default function MemberScheduleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -93,9 +101,10 @@ export default function MemberScheduleScreen() {
                 onValueChange={(val) => updateDay(index, 'workout_type', val)}
                 style={styles.picker}
                 dropdownIconColor="#00FF66"
+                mode="dropdown" // Improved behavior on many Android versions
               >
                 {WORKOUT_TYPES.map(type => (
-                  <Picker.Item key={type} label={type} value={type} color="#fff" />
+                  <Picker.Item key={type} label={type} value={type} color="#000" />
                 ))}
               </Picker>
             </View>
