@@ -17,8 +17,8 @@ export default function RegisterScreen() {
   const register = useAuthStore((state) => state.register);
 
   const handleRegister = async () => {
-    if (!name || !email || !password) {
-      alert("Name, email, and password are required!");
+    if (!name || !email || !password || !weight) {
+      alert("Name, email, password, and weight are required!");
       return;
     }
     if (password.length < 6) {
@@ -44,7 +44,7 @@ export default function RegisterScreen() {
           <TextInput style={styles.input} placeholder="Date of Birth (YYYY-MM-DD)" placeholderTextColor="#888" value={dob} onChangeText={setDob} />
           <TextInput style={styles.input} placeholder="Address" placeholderTextColor="#888" value={address} onChangeText={setAddress} />
           <View style={styles.row}>
-            <TextInput style={[styles.input, { flex: 1, marginRight: 8 }]} placeholder="Weight (e.g. 75kg)" placeholderTextColor="#888" value={weight} onChangeText={setWeight} />
+            <TextInput style={[styles.input, { flex: 1, marginRight: 8 }]} placeholder="Weight * (e.g. 75kg)" placeholderTextColor="#888" value={weight} onChangeText={setWeight} />
             <TextInput style={[styles.input, { flex: 1, marginLeft: 8 }]} placeholder="Height (e.g. 180cm)" placeholderTextColor="#888" value={height} onChangeText={setHeight} />
           </View>
           <TextInput style={styles.input} placeholder="Primary Fitness Goal" placeholderTextColor="#888" value={fitnessGoal} onChangeText={setFitnessGoal} />

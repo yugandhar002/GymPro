@@ -1,8 +1,9 @@
 import { useAuthStore } from '@/store/useAuthStore';
+import { useMembersStore } from '@/store/useMembersStore';
 import { useScheduleStore } from '@/store/useScheduleStore';
 import { format } from 'date-fns';
 import { router } from 'expo-router';
-import { Activity, Flame, Timer, Trophy, UserCheck, Zap } from 'lucide-react-native';
+import { Activity, Calendar, Flame, Timer, Trophy, UserCheck, Zap } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -20,6 +21,7 @@ const MET_VALUES: Record<string, Record<string, number>> = {
 export default function DashboardScreen() {
   const { user, logout, pendingUsers, approveUser, denyUser } = useAuthStore();
   const { userSchedules, todayLog, loading, fetchUserSchedules, fetchTodayLog, saveWorkoutLog } = useScheduleStore();
+  const { members, fetchMembers } = useMembersStore();
 
   const [selectedDay, setSelectedDay] = useState((new Date().getDay() + 6) % 7);
   const [duration, setDuration] = useState('');
@@ -33,6 +35,9 @@ export default function DashboardScreen() {
     if (user?.id) {
       fetchUserSchedules(user.id);
       fetchTodayLog(user.id);
+    }
+    if (user?.role === 'admin') {
+      fetchMembers();
     }
   }, [user?.id]);
 
@@ -161,7 +166,7 @@ export default function DashboardScreen() {
                 <Text style={styles.resultTitle}>Great session, {user?.name.split(' ')[0]}!</Text>
               </View>
               <Text style={styles.resultBody}>
-                You burned <Text style={styles.resultHighlight}>{todayLog.calories_burned}</Text> calories in {todayLog.duration_minutes} minutes at {todayLog.intensity} intensity.
+                You burned around <Text style={styles.resultHighlight}>{todayLog.calories_burned}</Text> calories in {todayLog.duration_minutes} minutes at {todayLog.intensity} intensity.
               </Text>
             </View>
           )}
@@ -289,6 +294,56 @@ export default function DashboardScreen() {
               </View>
             ))
           )}
+
+          {/* Today's Member Progress */}
+          <Text style={[styles.sectionTitle, { fontSize: 16, marginTop: 24, color: '#A0A0A0' }]}>Today's Member Progress</Text>
+          {members.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>No approved members yet.</Text>
+            </View>
+          ) : (
+            members.map(m => {
+              const didWorkout = m.todayCompleted;
+              const isRestDay = m.todayWorkoutType === 'Rest Day';
+              return (
+                <View key={m.id} style={[
+                  styles.progressCard,
+                  { borderLeftColor: didWorkout ? '#00FF66' : isRestDay ? '#555' : '#FF4500' }
+                ]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.progressName}>{m.name}</Text>
+                    <View style={styles.progressRow}>
+                      <Calendar color="#888" size={13} />
+                      <Text style={styles.progressWorkout}>
+                        {m.todayWorkoutType || 'No workout scheduled'}
+                      </Text>
+                    </View>
+                    {didWorkout ? (
+                      <View style={styles.progressRow}>
+                        <Flame color="#00FF66" size={13} />
+                        <Text style={styles.progressCalories}>{m.todayCalories ?? 0} kcal burned</Text>
+                      </View>
+                    ) : isRestDay ? (
+                      <Text style={styles.progressMissed}>Rest day — no session needed 🧘</Text>
+                    ) : (
+                      <Text style={styles.progressMissed}>Hasn't logged a session today yet.</Text>
+                    )}
+                  </View>
+                  <View style={[
+                    styles.progressBadge,
+                    { backgroundColor: didWorkout ? '#00FF6620' : isRestDay ? '#55555520' : '#FF450020' }
+                  ]}>
+                    <Text style={[
+                      styles.progressBadgeText,
+                      { color: didWorkout ? '#00FF66' : isRestDay ? '#888' : '#FF4500' }
+                    ]}>
+                      {didWorkout ? '✓ Done' : isRestDay ? 'Rest' : 'Absent'}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })
+          )}
         </View>
       )}
     </ScrollView>
@@ -366,5 +421,13 @@ const styles = StyleSheet.create({
   userDetail: { color: '#888', fontSize: 13, marginBottom: 2 },
   userGoal: { color: '#00FF66', fontSize: 13, marginTop: 4, fontWeight: '500' },
   actionRow: { flexDirection: 'row', gap: 8 },
-  circleButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, justifyContent: 'center', alignItems: 'center' }
+  circleButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+  progressCard: { backgroundColor: '#1E1E1E', padding: 16, borderRadius: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 10, borderLeftWidth: 4, borderLeftColor: '#555' },
+  progressName: { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 6 },
+  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  progressWorkout: { color: '#A0A0A0', fontSize: 13 },
+  progressCalories: { color: '#00FF66', fontSize: 13, fontWeight: '600' },
+  progressMissed: { color: '#FF4500', fontSize: 12, fontStyle: 'italic', marginTop: 2 },
+  progressBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, marginLeft: 12 },
+  progressBadgeText: { fontSize: 12, fontWeight: '700' },
 });
